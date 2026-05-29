@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE: ghcr.io/kirqe/gitops-app
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push
+        run: |
+          docker build -t $IMAGE:${{ github.sha }} .
+          docker push $IMAGE:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update manifest
+        run: |
+          git config --global user.email "ci@github.bot"
+          git config --global user.name "CI Bot"
+          git clone https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/kirqe/gitops-deploy
+          cd gitops-deploy/gitops-app
+          sed -i "s|$IMAGE:.*|$IMAGE:${{ github.sha }}|g" deployment.yaml
+          git add deployment.yaml
+          git commit -m "update image ${{ github.sha }}"
+          git push
+
+      - name: Deploy to k8s
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          kubectl apply -f gitops-deploy/gitops-app/
