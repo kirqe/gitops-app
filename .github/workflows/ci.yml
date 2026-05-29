@@ -30,7 +30,7 @@ jobs:
         run: |
           git config --global user.email "ci@github.bot"
           git config --global user.name "CI Bot"
-          git clone https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/kirqe/gitops-deploy
+          git clone https://x-access-token:${{ secrets.DEPLOY_TOKEN }}@github.com/kirqe/gitops-deploy
           cd gitops-deploy/gitops-app
           sed -i "s|$IMAGE:.*|$IMAGE:${{ github.sha }}|g" deployment.yaml
           git add deployment.yaml
