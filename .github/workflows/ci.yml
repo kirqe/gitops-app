@@ -26,12 +26,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: kirqe/gitops-deploy
+          token: ${{ secrets.DEPLOY_TOKEN }}
+          path: gitops-deploy
       - name: Update manifest
+        working-directory: gitops-deploy/gitops-app
         run: |
           git config --global user.email "ci@github.bot"
           git config --global user.name "CI Bot"
-          git clone https://x-access-token:${{ secrets.DEPLOY_TOKEN }}@github.com/kirqe/gitops-deploy
-          cd gitops-deploy/gitops-app
           sed -i "s|$IMAGE:.*|$IMAGE:${{ github.sha }}|g" deployment.yaml
           git add deployment.yaml
           git commit -m "update image ${{ github.sha }}"
