@@ -25,6 +25,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    environment: beget-k8s
     steps:
       - uses: actions/checkout@v4
         with:
