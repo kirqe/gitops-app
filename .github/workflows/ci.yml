@@ -45,7 +45,7 @@ jobs:
           git config --global user.name "CI Bot"
           sed -i "s|$IMAGE:.*|$IMAGE:$TAG|g" deployment.yaml
           git add deployment.yaml
-          git commit -m "${{ github.actor }} - $APP_NAME: update image $TAG"
+          git commit -m "${{ github.actor }} - update image $USERNAME/$APP_NAME@$TAG"
           git push
 
       - name: Deploy to k8s
