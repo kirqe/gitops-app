@@ -6,7 +6,9 @@ on:
       - main
 
 env:
-  IMAGE: ghcr.io/kirqe/gitops-app
+  REGISTRY: ghcr.io
+  USERNAME: kirqe
+  APP_NAME: gitops-app
 
 jobs:
   build:
@@ -15,12 +17,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
 
       - name: Build and push
         run: |
-          docker build -t $IMAGE:${{ github.sha }} .
-          docker push $IMAGE:${{ github.sha }}
+          IMAGE=$REGISTRY/$USERNAME/$APP_NAME
+          TAG=${GITHUB_SHA::7}
+          docker build -t $IMAGE:$TAG .
+          docker push $IMAGE:$TAG
 
   deploy:
     needs: build
@@ -29,21 +33,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: kirqe/gitops-deploy
+          repository: ${{ github.repository_owner }}/gitops-deploy
           token: ${{ secrets.DEPLOY_TOKEN }}
           path: gitops-deploy
       - name: Update manifest
-        working-directory: gitops-deploy/gitops-app
+        working-directory: gitops-deploy/apps/gitops-app
         run: |
+          IMAGE=$REGISTRY/$USERNAME/$APP_NAME
+          TAG=${GITHUB_SHA::7}
           git config --global user.email "ci@github.bot"
           git config --global user.name "CI Bot"
-          sed -i "s|$IMAGE:.*|$IMAGE:${{ github.sha }}|g" deployment.yaml
+          sed -i "s|$IMAGE:.*|$IMAGE:$TAG|g" deployment.yaml
           git add deployment.yaml
-          git commit -m "update image ${{ github.sha }}"
+          git commit -m "${{ github.actor }} - $APP_NAME: update image $TAG"
           git push
 
       - name: Deploy to k8s
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
-          kubectl apply -f gitops-deploy/gitops-app/
+          kubectl apply -R -f gitops-deploy/apps/
