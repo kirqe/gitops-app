@@ -48,8 +48,10 @@ jobs:
           git commit -m "${{ github.actor }} - update image $USERNAME/$APP_NAME@$TAG"
           git push
 
-      - name: Deploy to k8s
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
-          kubectl apply -R -f gitops-deploy/apps/
+      # Replaced by Argo CD (pull-based GitOps): the cluster reconciles from
+      # gitops-deploy itself, so CI no longer applies manifests or needs KUBECONFIG.
+      # - name: Deploy to k8s
+      #   run: |
+      #     mkdir -p ~/.kube
+      #     echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+      #     kubectl apply -R -f gitops-deploy/apps/
